@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GA4 + GTM 埋設完整教學</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --purple: #6B5CE7;
+    --purple-light: #F0EEFF;
+    --purple-mid: #C5BAF5;
+    --teal: #1D9E75;
+    --teal-light: #E1F5EE;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --coral: #993C1D;
+    --coral-light: #FAECE7;
+    --gray: #5F5E5A;
+    --gray-light: #F1EFE8;
+    --gray-mid: #D3D1C7;
+    --text: #2C2C2A;
+    --bg: #FAFAF8;
+    --sidebar-w: 260px;
+    --header-h: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.75;
+  }
+
+  /* ── Header ─────────────────────────────── */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--header-h);
+    background: var(--purple);
+    display: flex; align-items: center; padding: 0 24px;
+    gap: 16px;
+  }
+  .header-title { color: #fff; font-weight: 700; font-size: 16px; }
+  .header-sub { color: var(--purple-mid); font-size: 13px; }
+
+  /* ── Sidebar ─────────────────────────────── */
+  .sidebar {
+    position: fixed; top: var(--header-h); left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: #fff;
+    border-right: 1px solid var(--gray-mid);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .sidebar-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    color: var(--gray); text-transform: uppercase;
+    padding: 8px 20px 4px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px;
+    cursor: pointer;
+    font-size: 13.5px; color: var(--text);
+    border-left: 3px solid transparent;
+    transition: all .15s;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--gray-light); }
+  .nav-item.active {
+    background: var(--purple-light);
+    border-left-color: var(--purple);
+    color: var(--purple); font-weight: 700;
+  }
+  .nav-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--gray-mid); color: var(--gray);
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .15s;
+  }
+  .nav-item.active .nav-num { background: var(--purple); color: #fff; }
+  .nav-item.done .nav-num { background: var(--teal); color: #fff; }
+  .nav-item.done { color: var(--teal); }
+
+  /* ── Main content ─────────────────────────── */
+  .main {
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    min-height: calc(100vh - var(--header-h));
+  }
+
+  .chapter { display: none; padding: 40px 48px 80px; max-width: 860px; }
+  .chapter.active { display: block; }
+
+  /* Chapter banner */
+  .chapter-banner {
+    background: var(--purple);
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 36px;
+  }
+  .chapter-banner .ch-num { color: var(--purple-mid); font-size: 13px; margin-bottom: 6px; }
+  .chapter-banner h1 { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .chapter-banner .ch-sub { color: var(--purple-mid); font-size: 14px; font-style: italic; }
+
+  /* Section headings */
+  h2 {
+    font-size: 19px; font-weight: 700; color: var(--blue);
+    margin: 36px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--blue-light);
+  }
+  h3 {
+    font-size: 15px; font-weight: 700; color: var(--gray);
+    margin: 24px 0 10px;
+  }
+
+  p { margin-bottom: 12px; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 700; color: var(--text); }
+  .hl-purple { color: var(--purple); font-weight: 700; }
+  .hl-teal   { color: var(--teal);   font-weight: 700; }
+  .hl-amber  { color: var(--amber);  font-weight: 700; }
+  .hl-blue   { color: var(--blue);   font-weight: 700; }
+  .hl-coral  { color: var(--coral);  font-weight: 700; }
+
+  /* ── Tables ─────────────────────────────── */
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; border: 1px solid var(--gray-mid); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead tr { background: var(--blue); }
+  thead th { color: #fff; font-weight: 700; padding: 10px 14px; text-align: left; }
+  tbody tr:nth-child(odd)  { background: #fff; }
+  tbody tr:nth-child(even) { background: var(--gray-light); }
+  tbody td { padding: 9px 14px; color: var(--text); border-top: 1px solid var(--gray-mid); }
+
+  thead.purple tr { background: var(--purple); }
+  thead.teal   tr { background: var(--teal); }
+  thead.amber  tr { background: var(--amber); }
+  thead.coral  tr { background: var(--coral); }
+
+  /* ── Boxes ─────────────────────────────── */
+  .box {
+    border-radius: 8px; padding: 14px 18px;
+    margin: 16px 0; font-size: 14px; line-height: 1.7;
+  }
+  .box-note { background: var(--amber-light); border-left: 4px solid var(--amber); }
+  .box-tip  { background: var(--teal-light);  border-left: 4px solid var(--teal); }
+  .box-info { background: var(--blue-light);  border-left: 4px solid var(--blue); }
+  .box-label { font-weight: 700; margin-bottom: 4px; }
+  .box-note .box-label { color: var(--amber); }
+  .box-tip  .box-label { color: var(--teal); }
+  .box-info .box-label { color: var(--blue); }
+
+  /* ── Q&A ─────────────────────────────── */
+  .qa {
+    border: 1px solid var(--purple-mid);
+    border-radius: 8px; margin: 20px 0; overflow: hidden;
+  }
+  .qa-q {
+    background: var(--purple-light);
+    padding: 12px 18px;
+    font-weight: 700; font-size: 14px;
+    border-left: 4px solid var(--purple);
+    display: flex; gap: 10px;
+  }
+  .qa-q .q-label { color: var(--purple); flex-shrink: 0; }
+  .qa-a { padding: 14px 18px; font-size: 14px; background: #fff; }
+
+  /* ── Flow diagram ─────────────────────────── */
+  .flow {
+    display: flex; align-items: center; gap: 0;
+    margin: 16px 0; flex-wrap: wrap; gap: 4px;
+  }
+  .flow-box {
+    border-radius: 8px; padding: 10px 16px;
+    text-align: center; font-size: 13px; font-weight: 700;
+    flex: 1; min-width: 100px;
+  }
+  .flow-box .fb-sub { font-weight: 400; font-size: 11px; margin-top: 2px; opacity: .85; }
+  .flow-arrow {
+    font-size: 20px; color: var(--gray-mid);
+    padding: 0 4px; flex-shrink: 0;
+  }
+  .fb-gray   { background: var(--gray-light); color: var(--gray);   border: 1px solid var(--gray-mid); }
+  .fb-blue   { background: var(--blue-light); color: var(--blue);   border: 1px solid var(--blue); }
+  .fb-teal   { background: var(--teal-light); color: var(--teal);   border: 1px solid var(--teal); }
+  .fb-amber  { background: var(--amber-light);color: var(--amber);  border: 1px solid var(--amber); }
+  .fb-purple { background: var(--purple-light);color: var(--purple);border: 1px solid var(--purple); }
+  .fb-coral  { background: var(--coral-light); color: var(--coral); border: 1px solid var(--coral); }
+
+  /* ── Compare columns ─────────────────────────── */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .compare-col { border-radius: 8px; overflow: hidden; border: 1px solid var(--gray-mid); }
+  .compare-title {
+    padding: 10px 16px; font-weight: 700; font-size: 13px;
+    color: #fff; text-align: center;
+  }
+  .compare-body { padding: 12px 16px; background: #fff; font-size: 13px; }
+  .compare-body li { margin-bottom: 6px; list-style: none; padding-left: 16px; position: relative; }
+  .compare-body li::before { content: '•'; position: absolute; left: 0; }
+
+  /* ── Struct boxes ─────────────────────────── */
+  .struct {
+    border: 2px solid var(--purple);
+    border-radius: 10px; padding: 16px;
+    margin: 16px 0;
+  }
+  .struct-title { color: var(--purple); font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+  .struct-inner { display: grid; gap: 10px; }
+  .struct-inner-2 { grid-template-columns: 1fr 1fr; }
+  .struct-inner-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .struct-box {
+    border-radius: 8px; padding: 12px 14px; font-size: 13px;
+  }
+  .struct-box .sb-title { font-weight: 700; margin-bottom: 6px; }
+  .struct-box li { list-style: none; padding-left: 14px; position: relative; font-size: 12.5px; margin-bottom: 3px; }
+  .struct-box li::before { content: '•'; position: absolute; left: 0; }
+  .sb-teal   { background: var(--teal-light);   border: 1px solid var(--teal);   }
+  .sb-teal   .sb-title { color: var(--teal); }
+  .sb-amber  { background: var(--amber-light);  border: 1px solid var(--amber);  }
+  .sb-amber  .sb-title { color: var(--amber); }
+  .sb-purple { background: var(--purple-light); border: 1px solid var(--purple); }
+  .sb-purple .sb-title { color: var(--purple); }
+  .sb-coral  { background: var(--coral-light);  border: 1px solid var(--coral);  }
+  .sb-coral  .sb-title { color: var(--coral); }
+  .sb-blue   { background: var(--blue-light);   border: 1px solid var(--blue);   }
+  .sb-blue   .sb-title { color: var(--blue); }
+
+  /* ── Step indicator ─────────────────────────── */
+  .step {
+    display: flex; gap: 0;
+    margin: 12px 0; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--gray-mid);
+  }
+  .step-num {
+    background: var(--blue); color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 12px 16px; min-width: 64px;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-num span { font-size: 22px; line-height: 1; }
+  .step-body { background: var(--blue-light); padding: 12px 18px; flex: 1; }
+  .step-body .step-title { font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+  .step-body .step-desc { font-size: 13.5px; }
+
+  /* ── Code block ─────────────────────────── */
+  .code-block {
+    background: #F5F5F0; border: 1px solid #BBBBBB;
+    border-radius: 8px; padding: 14px 18px;
+    margin: 12px 0; overflow-x: auto;
+  }
+  .code-block code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: #444441; line-height: 1.7;
+    display: block; white-space: pre;
+  }
+
+  /* ── Checklist ─────────────────────────── */
+  .checklist-section {
+    margin-top: 48px;
+    border: 2px solid var(--purple);
+    border-radius: 12px; overflow: hidden;
+  }
+  .checklist-header {
+    background: var(--purple);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .checklist-header h3 { color: #fff; font-size: 15px; margin: 0; border: none; }
+  .checklist-progress {
+    font-size: 12px; color: var(--purple-mid); font-weight: 700;
+  }
+  .checklist-body { padding: 20px; background: #fff; }
+  .checklist-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 12px; border-radius: 8px;
+    margin-bottom: 6px; cursor: pointer;
+    transition: background .15s; user-select: none;
+    font-size: 14px;
+  }
+  .checklist-item:hover { background: var(--gray-light); }
+  .checklist-item.checked { background: var(--teal-light); }
+  .checklist-item .ci-box {
+    width: 20px; height: 20px; border-radius: 5px;
+    border: 2px solid var(--gray-mid); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px; transition: all .15s;
+    background: #fff;
+  }
+  .checklist-item.checked .ci-box {
+    background: var(--teal); border-color: var(--teal);
+  }
+  .checklist-item.checked .ci-box::after {
+    content: '✓'; color: #fff; font-size: 12px; font-weight: 700;
+  }
+  .checklist-item .ci-text { flex: 1; line-height: 1.5; }
+  .checklist-item.checked .ci-text { color: var(--teal); }
+  .checklist-tag {
+    font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 20px; flex-shrink: 0; margin-top: 2px;
+  }
+  .tag-ga4    { background: var(--purple-light); color: var(--purple); }
+  .tag-gtm    { background: var(--blue-light);   color: var(--blue); }
+  .tag-rd     { background: var(--amber-light);  color: var(--amber); }
+  .tag-verify { background: var(--teal-light);   color: var(--teal); }
+
+  .progress-bar {
+    height: 4px; background: var(--gray-mid);
+    margin: 0; border-radius: 0;
+  }
+  .progress-fill {
+    height: 100%; background: var(--teal);
+    border-radius: 0; transition: width .3s;
+  }
+
+  /* ── Nav progress dots ─────────────────────────── */
+  .nav-done-count {
+    font-size: 10px; color: var(--teal); margin-left: auto; font-weight: 700;
+  }
+
+  /* ── Overall progress ─────────────────────────── */
+  .overall-progress {
+    padding: 8px 20px 12px;
+    border-top: 1px solid var(--gray-light);
+    margin-top: 8px;
+  }
+  .op-label { font-size: 11px; color: var(--gray); margin-bottom: 6px; }
+  .op-bar { height: 6px; background: var(--gray-light); border-radius: 3px; overflow: hidden; }
+  .op-fill { height: 100%; background: var(--teal); border-radius: 3px; transition: width .3s; }
+  .op-count { font-size: 11px; color: var(--teal); font-weight: 700; margin-top: 4px; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .chapter { padding: 24px 20px 60px; }
+    .compare { grid-template-columns: 1fr; }
+    .struct-inner-2, .struct-inner-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-title">GA4 + GTM 埋設完整教學</div>
+  <div class="header-sub">加密貨幣交易所實作指南（含圖解與 Q&A）</div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-label">章節導覽</div>
+  <div class="nav-item active" onclick="goTo(0)" id="nav-0">
+    <div class="nav-num">1</div>
+    <div>觀念準備</div>
+  </div>
+  <div class="nav-item" onclick="goTo(1)" id="nav-1">
+    <div class="nav-num">2</div>
+    <div>GA4 帳戶設定</div>
+  </div>
+  <div class="nav-item" onclick="goTo(2)" id="nav-2">
+    <div class="nav-num">3</div>
+    <div>GTM 帳戶設定</div>
+  </div>
+  <div class="nav-item" onclick="goTo(3)" id="nav-3">
+    <div class="nav-num">4</div>
+    <div>GTM 代碼設定（Web）</div>
+  </div>
+  <div class="nav-item" onclick="goTo(4)" id="nav-4">
+    <div class="nav-num">5</div>
+    <div>SPA 埋設 GTM Snippet</div>
+  </div>
+  <div class="nav-item" onclick="goTo(5)" id="nav-5">
+    <div class="nav-num">6</div>
+    <div>App 埋設（Flutter）</div>
+  </div>
+  <div class="nav-item" onclick="goTo(6)" id="nav-6">
+    <div class="nav-num">7</div>
+    <div>驗證與 Debug</div>
+  </div>
+
+  <div class="overall-progress">
+    <div class="op-label">整體完成進度</div>
+    <div class="op-bar"><div class="op-fill" id="op-fill" style="width:0%"></div></div>
+    <div class="op-count" id="op-count">0 / 0 項完成</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+<!-- ══ 第一章 ══ -->
+<div class="chapter active" id="ch-0">
+  <div class="chapter-banner">
+    <div class="ch-num">第一章</div>
+    <h1>觀念準備</h1>
+    <div class="ch-sub">GA4 vs GTM，環境隔離策略，SPA 換頁，事件參數來源</div>
+  </div>
+
+  <h2>GA4 和 GTM 分別是什麼？</h2>
+  <p>很多人一開始會搞混這兩個工具。先用一句話區分：</p>
+  <div class="tbl-wrap">
+    <table><thead class="blue"><tr><th>工具</th><th>角色</th><th>比喻</th></tr></thead>
+    <tbody>
+      <tr><td><strong>GA4</strong></td><td>收資料的倉庫，負責儲存、分析你的數據</td><td>倉庫</td></tr>
+      <tr><td><strong>GTM</strong></td><td>部署代碼的工具，決定何時送什麼資料給 GA4</td><td>物流排程系統</td></tr>
+    </tbody></table>
+  </div>
+  <p>你可以完全不用 GTM，直接把 GA4 程式碼寫死在程式裡，但這樣每次改追蹤邏輯都要改程式碼、重新部署。GTM 的價值是讓你<strong>不動程式碼就能調整追蹤設定</strong>。</p>
+
+  <p><span class="hl-blue">三者的資料流：</span></p>
+  <div class="flow">
+    <div class="flow-box fb-gray">你的平台<div class="fb-sub">Web / App</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-blue">GTM<div class="fb-sub">代碼管理容器</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-teal">GA4<div class="fb-sub">數據儲存 / 報表</div></div>
+  </div>
+
+  <h2>GTM 的三個核心概念</h2>
+  <p>所有 GTM 操作都圍繞這三個東西：</p>
+  <div class="flow">
+    <div class="flow-box fb-amber">① 觸發器 Trigger<div class="fb-sub">什麼時候動作</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-purple">② 變數 Variable<div class="fb-sub">帶什麼資料進去</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-teal">③ 代碼 Tag<div class="fb-sub">做什麼事</div></div>
+  </div>
+  <div class="box box-tip"><div class="box-label">✓ 重點</div>點了購買按鈕（觸發器）→ 帶著 Measurement ID（變數）→ 執行 GA4 代碼（代碼）→ 傳送 purchase 事件給 GA4</div>
+
+  <h2>SPA 換頁為什麼需要特別處理？</h2>
+  <p>你們的 Web 是 Vue.js SPA，這是追蹤上最容易踩坑的地方。</p>
+  <div class="compare">
+    <div class="compare-col">
+      <div class="compare-title" style="background:var(--gray)">傳統網站</div>
+      <div class="compare-body"><ul>
+        <li>每次換頁 → 整頁重新載入</li>
+        <li>瀏覽器重新執行所有 JS</li>
+        <li>GTM 自動重新載入</li>
+        <li>page_view 自動觸發 ✓</li>
+      </ul></div>
+    </div>
+    <div class="compare-col">
+      <div class="compare-title" style="background:var(--amber)">SPA（Vue.js）</div>
+      <div class="compare-body"><ul>
+        <li>只有一個頁面殼，內容換掉</li>
+        <li>換頁不重新載入頁面</li>
+        <li>GTM 不重新執行</li>
+        <li>page_view 不觸發 ✗</li>
+      </ul></div>
+    </div>
+  </div>
+  <p>SPA 換頁時，雖然頁面沒有重載，但瀏覽器的網址列會悄悄更新，這個變化叫做 <strong>History API</strong>，Vue Router 就是靠它切換頁面的。GTM 的「歷史記錄變更」觸發器，就是專門監聽這個變化。</p>
+  <p><span class="hl-blue">所以 SPA 需要兩個觸發器，缺一不可：</span></p>
+  <div class="tbl-wrap">
+    <table><thead class="teal"><tr><th>觸發器</th><th>類型</th><th>負責時機</th><th>發生幾次</th></tr></thead>
+    <tbody>
+      <tr><td>頁面瀏覽 - 初次載入</td><td>DOM 就緒</td><td>使用者第一次進入網站</td><td>每個 session 一次</td></tr>
+      <tr><td>SPA 換頁 - History Change</td><td>歷史記錄變更</td><td>之後每次在 SPA 內切換頁面</td><td>每換一頁觸發一次</td></tr>
+    </tbody></table>
+  </div>
+  <div class="box box-note"><div class="box-label">⚠ 注意</div>每次討論頁面追蹤時，都要主動確認這兩個觸發器都有設定，少任何一個就會有漏洞。</div>
+
+  <h2>環境隔離策略</h2>
+  <p>測試數據絕對不能污染正式報表，你們採用兩層隔離：</p>
+  <div class="tbl-wrap">
+    <table><thead class="purple"><tr><th>隔離層面</th><th>工具</th><th>做法</th><th>目的</th></tr></thead>
+    <tbody>
+      <tr><td>GA4 層</td><td>2 個 Property</td><td>測試數據天然進不了 PROD Property</td><td>VIP 數據完全乾淨</td></tr>
+      <tr><td>GTM 層</td><td>6 個容器</td><td>代碼修改在測試容器不影響正式</td><td>避免未完成代碼上線</td></tr>
+      <tr><td>Firebase 層</td><td>2 個 Firebase 專案</td><td>App 數據對應正確的 GA4 Property</td><td>正式 / 測試 App 數據分流</td></tr>
+    </tbody></table>
+  </div>
+
+  <h2>App 為什麼需要 Firebase？</h2>
+  <p>Web 的 GTM 是把 JavaScript snippet 貼在 HTML 裡，直接運作。但 Flutter App 沒有 HTML，架構不同：</p>
+  <div class="flow">
+    <div class="flow-box fb-gray">Flutter App<div class="fb-sub">業務邏輯 / 畫面</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-amber">Firebase SDK<div class="fb-sub">RD 安裝進 App</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-blue">GTM for Firebase<div class="fb-sub">你管代碼的地方</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-teal">GA4<div class="fb-sub">數據儲存 / 報表</div></div>
+  </div>
+
+  <h2>事件參數：什麼時候需要請 RD 幫忙？</h2>
+  <div class="compare">
+    <div class="compare-col">
+      <div class="compare-title" style="background:var(--teal)">GTM 自己能讀到</div>
+      <div class="compare-body"><ul>
+        <li>頁面網址、標題</li>
+        <li>按鈕文字 / CSS class</li>
+        <li>Cookie / localStorage 的值</li>
+      </ul></div>
+    </div>
+    <div class="compare-col">
+      <div class="compare-title" style="background:var(--coral)">GTM 讀不到（需 RD 推送）</div>
+      <div class="compare-body"><ul>
+        <li>App 內部的 State（交易數量）</li>
+        <li>API 回傳的資料（成交價格）</li>
+        <li>後端計算結果（訂單 ID）</li>
+        <li>程式內部變數（VIP 等級）</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="qa-q"><span class="q-label">Q</span>我以為前端只需要一個 GTM 碼，其餘參數跟事件都可以在 GTM 後台設定？</div>
+    <div class="qa-a">
+      <p>部分正確。GTM 確實可以讀取頁面上已有的資訊，不需要 RD。但交易所的核心數據（成交金額、幣別、訂單 ID）不在 HTML 頁面上，GTM 讀不到。</p>
+      <p>所以 RD 需要在對應的程式邏輯執行時，主動把這些資料推送給 GTM：</p>
+      <p><span class="hl-blue">Web：</span>推送 window.dataLayer.push({ event: 'trade_complete', symbol: 'BTC-CAD', price: 50000 })</p>
+      <p><span class="hl-teal">App：</span>呼叫 FirebaseAnalytics.instance.logEvent(name: 'trade_complete', parameters: {...})</p>
+      <div class="box box-tip" style="margin-top:12px"><div class="box-label">✓ 重點</div>RD 只需埋設一次，之後你在 GTM / GA4 後台自由調整，不需要再改程式碼。</div>
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="qa-q"><span class="q-label">Q</span>意思是畫面上讀不到的資訊才需要請 RD 推送，畫面上就有就不用？這樣理解對嗎？</div>
+    <div class="qa-a">
+      <p>對，理解方向正確！但有一個重要補充：<span class="hl-amber">「讀得到」不代表「讀到的值是對的」。</span></p>
+      <div class="tbl-wrap"><table><thead class="amber"><tr><th>問題</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>數字格式不可靠</td><td>畫面顯示「0.50 BTC」，GTM 讀到的是文字字串，不是數字，無法計算</td></tr>
+        <tr><td>畫面數據會變動</td><td>交易所價格每秒更新，GTM 讀取的瞬間不一定是成交當下的值</td></tr>
+        <tr><td>維護成本高</td><td>RD 改了 CSS class，GTM 設定的選取器就失效，追蹤默默中斷</td></tr>
+      </tbody></table></div>
+      <p>所以交易所產品的核心數據，即使畫面上顯示了，還是建議透過 dataLayer 推送，數據才準確、穩定、不怕前端改版。</p>
+    </div>
+  </div>
+
+  <!-- Checklist -->
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第一章 觀念確認清單</h3>
+      <div class="checklist-progress" id="prog-0">0 / 4</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-0" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'0')">
+        <div class="ci-box"></div>
+        <div class="ci-text">理解 GA4（倉庫）和 GTM（物流）的角色差異</div>
+        <span class="checklist-tag tag-ga4">觀念</span>
+      </div>
+      <div class="checklist-item" onclick="toggle(this,'0')">
+        <div class="ci-box"></div>
+        <div class="ci-text">理解 SPA 為什麼需要兩個觸發器（DOM 就緒 + History Change）</div>
+        <span class="checklist-tag tag-gtm">觀念</span>
+      </div>
+      <div class="checklist-item" onclick="toggle(this,'0')">
+        <div class="ci-box"></div>
+        <div class="ci-text">理解為什麼 App 需要 Firebase SDK 作為中間層</div>
+        <span class="checklist-tag tag-ga4">觀念</span>
+      </div>
+      <div class="checklist-item" onclick="toggle(this,'0')">
+        <div class="ci-box"></div>
+        <div class="ci-text">理解哪些事件參數需要 RD 透過 dataLayer / logEvent 推送</div>
+        <span class="checklist-tag tag-rd">觀念</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第二章 ══ -->
+<div class="chapter" id="ch-1">
+  <div class="chapter-banner">
+    <div class="ch-num">第二章</div>
+    <h1>GA4 帳戶設定</h1>
+    <div class="ch-sub">建立 2 個 Property，各含 3 個 Data Stream，共 6 組 Stream ID</div>
+  </div>
+
+  <p>這章完成後，你會拿到 6 組 Stream ID。PROD 的 3 組給 GTM 和 RD 使用，DEV 的 3 組用於測試驗證。</p>
+
+  <h2>本章目標架構</h2>
+  <div class="struct">
+    <div class="struct-title">🗂 GA4 帳戶（1 個）— 公司帳戶，所有東西都在這裡面</div>
+    <div class="struct-inner struct-inner-2">
+      <div class="struct-box sb-teal">
+        <div class="sb-title">PROD Property</div>
+        <ul>
+          <li>正式環境，真實用戶數據</li>
+          <li>Web Stream（G-PROD-XXXX）</li>
+          <li>iOS Stream</li>
+          <li>Android Stream</li>
+        </ul>
+      </div>
+      <div class="struct-box sb-amber">
+        <div class="sb-title">DEV Property</div>
+        <ul>
+          <li>測試環境，QA / 開發驗證</li>
+          <li>Web Stream（G-DEV-XXXX）</li>
+          <li>iOS Stream</li>
+          <li>Android Stream</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="qa-q"><span class="q-label">Q</span>為什麼 iOS Stream 和 Android Stream 要分開建？</div>
+    <div class="qa-a">
+      <p>因為 GA4 的 App Stream 對應的是一個實際存在的 App，iOS 和 Android 在 GA4 / Firebase 的角度是兩個不同的應用程式，必須分開登記。</p>
+      <div class="tbl-wrap"><table><thead class="blue"><tr><th>平台</th><th>識別方式</th><th>設定檔</th></tr></thead>
+      <tbody>
+        <tr><td>iOS</td><td>Bundle ID（例如 com.yourapp.ios）</td><td>GoogleService-Info.plist</td></tr>
+        <tr><td>Android</td><td>Package Name（例如 com.yourapp）</td><td>google-services.json</td></tr>
+      </tbody></table></div>
+      <div class="box box-tip"><div class="box-label">✓ 重點</div>分開建並不會讓報表變亂。GA4 收到數據時自動標記來源平台，你在報表裡用「平台」篩選就能合併或分開看。</div>
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="qa-q"><span class="q-label">Q</span>如果用 1 個 Property + 多個 Stream 和 2 個 Property 有什麼差別？</div>
+    <div class="qa-a">
+      <div class="tbl-wrap"><table><thead class="purple"><tr><th>比較項目</th><th>1 Property + 多 Stream</th><th>2 Properties（你們的選擇）</th></tr></thead>
+      <tbody>
+        <tr><td>測試數據隔離</td><td>靠篩選器，有設錯的風險</td><td>天然隔離，完全無法混入</td></tr>
+        <tr><td>開發人員 IP 問題</td><td>Internal Traffic Filter 可能因 VPN 失效</td><td>不影響，測試數據本來就在 DEV</td></tr>
+        <tr><td>VIP 數據品質</td><td>可能被測試行為污染</td><td>完全乾淨，適合高精度分析</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <h2>Step 1：建立 GA4 帳戶</h2>
+  <div class="step"><div class="step-num">STEP<span>1</span></div><div class="step-body"><div class="step-title">前往 analytics.google.com</div><div class="step-desc">用公司 Google 帳號登入。點「建立帳戶」，填入公司名稱（例如 Acme Corp）。帳戶是最上層容器，整間公司通常只需要一個。</div></div></div>
+
+  <h2>Step 2：建立 PROD Property 與 3 個 Stream</h2>
+  <div class="step"><div class="step-num">STEP<span>2</span></div><div class="step-body"><div class="step-title">建立 PROD Property</div><div class="step-desc">資源名稱建議用產品名稱，例如「MyApp」。<strong>時區和幣別選你們主要市場的設定，這兩個之後很難改。</strong></div></div></div>
+  <p style="margin-top:12px"><span class="hl-blue">在 PROD Property 依序建立 3 個 Stream：</span></p>
+  <div class="tbl-wrap"><table><thead class="teal"><tr><th>Stream 名稱</th><th>類型</th><th>填寫內容</th><th>取得的 ID</th></tr></thead>
+  <tbody>
+    <tr><td>Web Stream</td><td>網路</td><td>正式網址，建議開啟「加強型評估」</td><td>Measurement ID（G-PROD-XXXX）記錄起來</td></tr>
+    <tr><td>iOS Stream</td><td>iOS 應用程式</td><td>Bundle ID（向 RD 確認）</td><td>firebase_app_id，給 RD 用</td></tr>
+    <tr><td>Android Stream</td><td>Android 應用程式</td><td>Package Name（向 RD 確認）</td><td>firebase_app_id，給 RD 用</td></tr>
+  </tbody></table></div>
+
+  <h2>Step 3：建立 DEV Property 與 3 個 Stream</h2>
+  <div class="step"><div class="step-num">STEP<span>3</span></div><div class="step-body"><div class="step-title">建立 DEV Property</div><div class="step-desc">回到帳戶首頁，點「建立資源」，命名為「MyApp - DEV」。然後重複建立相同的 3 個 Stream，網址改為 staging 網址，Bundle ID / Package Name 向 RD 確認測試版本的值。</div></div></div>
+
+  <h2>本章完成後的 ID 清單</h2>
+  <div class="tbl-wrap"><table><thead class="purple"><tr><th>ID 名稱</th><th>來自哪裡</th><th>給誰用</th></tr></thead>
+  <tbody>
+    <tr><td>PROD Web Measurement ID（G-PROD-XXXX）</td><td>PROD Property → Web Stream</td><td>GTM Web 正式容器</td></tr>
+    <tr><td>DEV Web Measurement ID（G-DEV-XXXX）</td><td>DEV Property → Web Stream</td><td>GTM Web 測試容器</td></tr>
+    <tr><td>PROD iOS firebase_app_id</td><td>PROD Property → iOS Stream</td><td>RD（Firebase PROD 專案）</td></tr>
+    <tr><td>PROD Android firebase_app_id</td><td>PROD Property → Android Stream</td><td>RD（Firebase PROD 專案）</td></tr>
+    <tr><td>DEV iOS firebase_app_id</td><td>DEV Property → iOS Stream</td><td>RD（Firebase DEV 專案）</td></tr>
+    <tr><td>DEV Android firebase_app_id</td><td>DEV Property → Android Stream</td><td>RD（Firebase DEV 專案）</td></tr>
+  </tbody></table></div>
+
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第二章 待辦清單</h3>
+      <div class="checklist-progress" id="prog-1">0 / 7</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-1" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">建立 GA4 帳戶</div><span class="checklist-tag tag-ga4">GA4</span></div>
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">建立 PROD Property（確認時區、幣別）</div><span class="checklist-tag tag-ga4">GA4</span></div>
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">PROD Property：建立 Web Stream，記錄 Measurement ID（G-PROD-XXXX）</div><span class="checklist-tag tag-ga4">GA4</span></div>
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">PROD Property：建立 iOS Stream（向 RD 確認 Bundle ID）</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">PROD Property：建立 Android Stream（向 RD 確認 Package Name）</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">建立 DEV Property，並建立 3 個 Stream（Web / iOS / Android），記錄 DEV Measurement ID</div><span class="checklist-tag tag-ga4">GA4</span></div>
+      <div class="checklist-item" onclick="toggle(this,'1')"><div class="ci-box"></div><div class="ci-text">將 6 組 Stream ID 整理到試算表，區分 PROD / DEV</div><span class="checklist-tag tag-ga4">GA4</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第三章 ══ -->
+<div class="chapter" id="ch-2">
+  <div class="chapter-banner">
+    <div class="ch-num">第三章</div>
+    <h1>GTM 帳戶設定</h1>
+    <div class="ch-sub">建立 6 個容器：Web × 2 + iOS × 2 + Android × 2</div>
+  </div>
+
+  <p>這章完成後你會有 6 個 GTM 容器。Web 容器類型選「網站」，App 容器依平台分別選「iOS」和「Android」，再透過 Firebase 連結到 App。</p>
+  <div class="box box-note"><div class="box-label">⚠ 注意</div>GTM 建立容器的目標平台選項只有：網站、iOS、Android、AMP、Server。<strong>沒有 Firebase 這個選項</strong>。「Firebase」是容器與 App 的連結方式，不是容器類型。</div>
+
+  <h2>本章目標架構</h2>
+  <div class="struct">
+    <div class="struct-title">🗂 GTM 帳戶（1 個）— 公司帳戶，6 個容器都在這裡面</div>
+    <div class="struct-inner struct-inner-3">
+      <div class="struct-box sb-teal">
+        <div class="sb-title">Web 容器（網站）</div>
+        <ul><li>Web - 正式</li><li>Web - 測試</li></ul>
+      </div>
+      <div class="struct-box sb-purple">
+        <div class="sb-title">iOS 容器（iOS）</div>
+        <ul><li>iOS - 正式</li><li>iOS - 測試</li></ul>
+      </div>
+      <div class="struct-box sb-coral">
+        <div class="sb-title">Android 容器（Android）</div>
+        <ul><li>Android - 正式</li><li>Android - 測試</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap"><table><thead class="blue"><tr><th>容器名稱</th><th>類型</th><th>對應環境</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td>Web - 正式</td><td>網站</td><td>Production build</td><td>正式 GA4 Measurement ID，不含 debug tag</td></tr>
+    <tr><td>Web - 測試</td><td>網站</td><td>Staging / localhost</td><td>測試 GA4 Measurement ID，開啟 DebugView</td></tr>
+    <tr><td>iOS - 正式</td><td>iOS</td><td>Firebase PROD 專案連結</td><td>控制 iOS 正式環境代碼</td></tr>
+    <tr><td>iOS - 測試</td><td>iOS</td><td>Firebase DEV 專案連結</td><td>控制 iOS 測試環境代碼</td></tr>
+    <tr><td>Android - 正式</td><td>Android</td><td>Firebase PROD 專案連結</td><td>控制 Android 正式環境代碼</td></tr>
+    <tr><td>Android - 測試</td><td>Android</td><td>Firebase DEV 專案連結</td><td>控制 Android 測試環境代碼</td></tr>
+  </tbody></table></div>
+
+  <h2>Step 1：建立 GTM 帳戶</h2>
+  <div class="step"><div class="step-num">STEP<span>1</span></div><div class="step-body"><div class="step-title">前往 tagmanager.google.com</div><div class="step-desc">用同一個公司 Google 帳號登入。點「建立帳戶」，填入公司名稱和國家。帳戶只需要建一個，6 個容器都放在裡面。</div></div></div>
+
+  <h2>Step 2–3：建立兩個 Web 容器</h2>
+  <div class="step"><div class="step-num">STEP<span>2</span></div><div class="step-body"><div class="step-title">建立 Web - 正式容器</div><div class="step-desc">容器名稱填「Web - 正式」，目標平台選「網站」。建立後複製 snippet 備用（第五章用），記錄容器 ID（GTM-XXXXXXX）。</div></div></div>
+  <div class="step"><div class="step-num">STEP<span>3</span></div><div class="step-body"><div class="step-title">建立 Web - 測試容器</div><div class="step-desc">容器名稱填「Web - 測試」，目標平台選「網站」。同樣把 snippet 和容器 ID 複製記錄。</div></div></div>
+
+  <h2>Step 4–5：建立兩個 iOS 容器</h2>
+  <div class="step"><div class="step-num">STEP<span>4</span></div><div class="step-body"><div class="step-title">建立 iOS - 正式容器</div><div class="step-desc">容器名稱填「iOS - 正式」，目標平台選「iOS」。記錄容器 ID，給 RD 透過 Firebase PROD 專案連結。</div></div></div>
+  <div class="step"><div class="step-num">STEP<span>5</span></div><div class="step-body"><div class="step-title">建立 iOS - 測試容器</div><div class="step-desc">容器名稱填「iOS - 測試」，目標平台選「iOS」。記錄容器 ID，給 RD 透過 Firebase DEV 專案連結。</div></div></div>
+
+  <h2>Step 6–7：建立兩個 Android 容器</h2>
+  <div class="step"><div class="step-num">STEP<span>6</span></div><div class="step-body"><div class="step-title">建立 Android - 正式容器</div><div class="step-desc">容器名稱填「Android - 正式」，目標平台選「Android」。記錄容器 ID，給 RD 透過 Firebase PROD 專案連結。</div></div></div>
+  <div class="step"><div class="step-num">STEP<span>7</span></div><div class="step-body"><div class="step-title">建立 Android - 測試容器</div><div class="step-desc">容器名稱填「Android - 測試」，目標平台選「Android」。記錄容器 ID，給 RD 透過 Firebase DEV 專案連結。</div></div></div>
+
+  <h2>整理給 RD 的容器 ID</h2>
+  <div class="tbl-wrap"><table><thead class="teal"><tr><th>項目</th><th>內容</th></tr></thead>
+  <tbody>
+    <tr><td>iOS 正式容器 ID</td><td>GTM-XXXXXXX（iOS 正式）</td></tr>
+    <tr><td>iOS 測試容器 ID</td><td>GTM-XXXXXXX（iOS 測試）</td></tr>
+    <tr><td>Android 正式容器 ID</td><td>GTM-XXXXXXX（Android 正式）</td></tr>
+    <tr><td>Android 測試容器 ID</td><td>GTM-XXXXXXX（Android 測試）</td></tr>
+    <tr><td>說明</td><td>Firebase PROD 專案連 iOS / Android 正式容器，DEV 專案連測試容器</td></tr>
+  </tbody></table></div>
+
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第三章 待辦清單</h3>
+      <div class="checklist-progress" id="prog-2">0 / 8</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-2" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立 GTM 帳戶</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立「Web - 正式」容器（類型：網站），複製 snippet 備用，記錄容器 ID</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立「Web - 測試」容器（類型：網站），複製 snippet 備用，記錄容器 ID</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立「iOS - 正式」容器（類型：iOS），記錄容器 ID</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立「iOS - 測試」容器（類型：iOS），記錄容器 ID</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立「Android - 正式」容器（類型：Android），記錄容器 ID</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">建立「Android - 測試」容器（類型：Android），記錄容器 ID</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'2')"><div class="ci-box"></div><div class="ci-text">將 iOS / Android 共 4 個容器 ID 整理後提供給 RD</div><span class="checklist-tag tag-rd">需 RD</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第四章 ══ -->
+<div class="chapter" id="ch-3">
+  <div class="chapter-banner">
+    <div class="ch-num">第四章</div>
+    <h1>GTM 代碼設定（Web）</h1>
+    <div class="ch-sub">變數 → 觸發器 → 代碼，順序不能反</div>
+  </div>
+
+  <p>這章全程在 GTM 介面操作，不需要動任何程式碼。以下步驟要在「Web - 測試」和「Web - 正式」兩個容器各做一次，差別只有 Measurement ID 不同。</p>
+  <div class="box box-note"><div class="box-label">⚠ 注意</div>建議先在「Web - 測試」容器完成並驗證正確後，再到「Web - 正式」容器重複相同步驟。</div>
+
+  <h2>Step 1：建立變數（存放 Measurement ID）</h2>
+  <div class="step"><div class="step-num">STEP<span>1</span></div><div class="step-body"><div class="step-title">進入 GTM → 「Web - 測試」容器 → 變數 → 新增</div><div class="step-desc">建立一個「常數」類型的變數，存放 Measurement ID。</div></div></div>
+  <div class="tbl-wrap"><table><thead class="purple"><tr><th>欄位</th><th>填寫內容</th></tr></thead>
+  <tbody>
+    <tr><td>變數名稱</td><td>GA4 Measurement ID</td></tr>
+    <tr><td>變數類型</td><td>常數</td></tr>
+    <tr><td>值</td><td>貼上 DEV Property 的 Web Stream Measurement ID（G-DEV-XXXX）</td></tr>
+  </tbody></table></div>
+  <div class="box box-tip"><div class="box-label">✓ 重點</div>用變數存 ID 的好處：之後 ID 需要更換時，只需改這一個地方，所有用到它的代碼都會跟著更新。</div>
+
+  <h2>Step 2：建立兩個觸發器</h2>
+  <p><span class="hl-teal">觸發器 A：頁面瀏覽（初次載入）</span></p>
+  <div class="tbl-wrap"><table><thead class="teal"><tr><th>欄位</th><th>填寫內容</th></tr></thead>
+  <tbody>
+    <tr><td>觸發器名稱</td><td>頁面瀏覽 - 初次載入</td></tr>
+    <tr><td>觸發器類型</td><td>頁面瀏覽 → DOM 就緒</td></tr>
+    <tr><td>觸發時機</td><td>所有 DOM 就緒事件</td></tr>
+  </tbody></table></div>
+  <p style="margin-top:12px"><span class="hl-teal">觸發器 B：SPA 換頁（History Change）</span></p>
+  <div class="tbl-wrap"><table><thead class="teal"><tr><th>欄位</th><th>填寫內容</th></tr></thead>
+  <tbody>
+    <tr><td>觸發器名稱</td><td>SPA 換頁 - History Change</td></tr>
+    <tr><td>觸發器類型</td><td>歷史記錄變更</td></tr>
+    <tr><td>觸發時機</td><td>所有歷史記錄變更事件</td></tr>
+  </tbody></table></div>
+
+  <h2>Step 3：建立 GA4 設定代碼</h2>
+  <div class="step"><div class="step-num">STEP<span>3</span></div><div class="step-body"><div class="step-title">左側選單 → 代碼 → 新增</div><div class="step-desc">建立 GA4 頁面瀏覽代碼，把變數和兩個觸發器綁在一起。</div></div></div>
+  <div class="tbl-wrap"><table><thead class="blue"><tr><th>欄位</th><th>填寫內容</th></tr></thead>
+  <tbody>
+    <tr><td>代碼名稱</td><td>GA4 - 頁面瀏覽</td></tr>
+    <tr><td>代碼類型</td><td>Google Analytics：GA4 設定</td></tr>
+    <tr><td>評估 ID</td><td>點選變數圖示 → 選「GA4 Measurement ID」</td></tr>
+    <tr><td>觸發條件</td><td>同時選兩個：頁面瀏覽 - 初次載入 + SPA 換頁 - History Change</td></tr>
+  </tbody></table></div>
+
+  <h2>Step 4：發布容器版本</h2>
+  <div class="step"><div class="step-num">STEP<span>4</span></div><div class="step-body"><div class="step-title">點右上角「提交」→ 填版本名稱 → 發布</div><div class="step-desc">版本名稱建議填「v1.0 初始 GA4 設定」，之後數據異常時可以快速回查。代碼發布後才會正式生效。</div></div></div>
+
+  <h2>Step 5：在「Web - 正式」容器重複</h2>
+  <div class="step"><div class="step-num">STEP<span>5</span></div><div class="step-body"><div class="step-title">切換到正式容器，重複 Step 1–4</div><div class="step-desc">唯一的差別是 Step 1 的變數值改為 PROD Property 的 Web Stream Measurement ID（G-PROD-XXXX）。</div></div></div>
+
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第四章 待辦清單</h3>
+      <div class="checklist-progress" id="prog-3">0 / 6</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-3" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'3')"><div class="ci-box"></div><div class="ci-text">【Web - 測試】建立變數「GA4 Measurement ID」，值填入 G-DEV-XXXX</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'3')"><div class="ci-box"></div><div class="ci-text">【Web - 測試】建立觸發器「頁面瀏覽 - 初次載入」（DOM 就緒）</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'3')"><div class="ci-box"></div><div class="ci-text">【Web - 測試】建立觸發器「SPA 換頁 - History Change」（歷史記錄變更）</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'3')"><div class="ci-box"></div><div class="ci-text">【Web - 測試】建立代碼「GA4 - 頁面瀏覽」，綁定變數和兩個觸發器，發布</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'3')"><div class="ci-box"></div><div class="ci-text">【Web - 正式】重複以上步驟，變數值改為 G-PROD-XXXX，發布</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'3')"><div class="ci-box"></div><div class="ci-text">兩個容器都已發布，版本說明都已填寫</div><span class="checklist-tag tag-gtm">GTM</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第五章 ══ -->
+<div class="chapter" id="ch-4">
+  <div class="chapter-banner">
+    <div class="ch-num">第五章</div>
+    <h1>SPA 埋設 GTM Snippet</h1>
+    <div class="ch-sub">提供資訊給 RD，讓 GTM 正式載入到 Vue.js 網站</div>
+  </div>
+
+  <p>這章需要 RD 協助。你的工作是提供正確的容器 ID，並告訴 RD 要貼在哪裡、如何切換環境。</p>
+
+  <h2>GTM Snippet 放在哪裡？</h2>
+  <div class="struct" style="border-color:var(--gray)">
+    <div class="struct-title" style="color:var(--gray)">📄 index.html（Vue 專案進入點）</div>
+    <div class="struct-inner">
+      <div class="struct-box sb-purple">
+        <div class="sb-title">＜head＞ 區塊（第一段 snippet）</div>
+        <ul><li>越靠近頂部越好</li><li>JS 版 GTM 載入器，主要靠這段運作</li></ul>
+      </div>
+      <div class="struct-box sb-blue">
+        <div class="sb-title">＜body＞ 開頭（第二段 snippet）</div>
+        <ul><li>noscript 備用標籤</li><li>給不支援 JS 的瀏覽器用，現代網站幾乎用不到</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <h2>環境切換：用環境變數動態帶入容器 ID</h2>
+  <p>你有兩個 Web 容器（正式 / 測試），不能在同一份程式碼裡貼兩段不同的 snippet。解法是用環境變數，build 時自動帶入對應的容器 ID。</p>
+  <div class="flow">
+    <div class="flow-box fb-teal">正式環境 build<div class="fb-sub">.env.production</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-gray">自動帶入</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-teal">GTM-PROD-XXXX<div class="fb-sub">正式容器 ID</div></div>
+  </div>
+  <div class="flow" style="margin-top:6px">
+    <div class="flow-box fb-amber">測試環境 build<div class="fb-sub">.env.staging</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-gray">自動帶入</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box fb-amber">GTM-DEV-XXXX<div class="fb-sub">測試容器 ID</div></div>
+  </div>
+  <div class="code-block"><code># .env.production
+VUE_APP_GTM_ID=GTM-PROD-XXXX
+
+# .env.staging
+VUE_APP_GTM_ID=GTM-DEV-XXXX</code></div>
+
+  <h2>給 RD 的完整說明</h2>
+  <div class="tbl-wrap"><table><thead class="blue"><tr><th>項目</th><th>內容</th></tr></thead>
+  <tbody>
+    <tr><td>Web 正式容器 ID</td><td>GTM-PROD-XXXX</td></tr>
+    <tr><td>Web 測試容器 ID</td><td>GTM-DEV-XXXX</td></tr>
+    <tr><td>第一段 snippet 位置</td><td>&lt;head&gt; 內，第一個 &lt;script&gt; 之前</td></tr>
+    <tr><td>第二段 snippet 位置</td><td>&lt;body&gt; 開頭，第一行</td></tr>
+    <tr><td>切換方式</td><td>用環境變數（VUE_APP_GTM_ID），build 時自動帶入對應 ID</td></tr>
+  </tbody></table></div>
+
+  <h2>自行驗證 GTM 是否載入成功</h2>
+  <p>RD 埋好之後，你可以自己驗證：打開測試網站 → F12 開啟開發者工具 → 切到「網路 Network」→ 搜尋欄輸入 <code style="background:var(--gray-light);padding:2px 6px;border-radius:4px;font-family:monospace">gtm.js</code></p>
+  <div class="box box-tip"><div class="box-label">✓ 重點</div>看到一筆請求，狀態碼是 200 → GTM 載入成功。什麼都沒有 → snippet 還沒有正確埋入。</div>
+
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第五章 待辦清單</h3>
+      <div class="checklist-progress" id="prog-4">0 / 4</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-4" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'4')"><div class="ci-box"></div><div class="ci-text">將 Web 正式 / 測試容器 ID 和 snippet 說明整理給 RD</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'4')"><div class="ci-box"></div><div class="ci-text">RD 確認在 .env.production 和 .env.staging 設定環境變數切換</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'4')"><div class="ci-box"></div><div class="ci-text">RD 在 &lt;head&gt; 和 &lt;body&gt; 正確位置埋入兩段 snippet</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'4')"><div class="ci-box"></div><div class="ci-text">自行驗證：Network 分頁搜尋 gtm.js，確認狀態碼 200</div><span class="checklist-tag tag-verify">驗證</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第六章 ══ -->
+<div class="chapter" id="ch-5">
+  <div class="chapter-banner">
+    <div class="ch-num">第六章</div>
+    <h1>App 埋設（Flutter）</h1>
+    <div class="ch-sub">Firebase SDK 整合、GTM 容器連結、環境切換</div>
+  </div>
+
+  <p>這章跟第五章一樣，你的工作是準備資訊、RD 負責實作。</p>
+  <div class="tbl-wrap"><table><thead class="purple"><tr><th>步驟</th><th>負責人</th><th>說明</th></tr></thead>
+  <tbody>
+    <tr><td>① Firebase 專案建立</td><td>RD</td><td>建兩個專案，連結 GA4 PROD / DEV Property</td></tr>
+    <tr><td>② 設定檔下載與整合</td><td>RD</td><td>各下載 iOS + Android 設定檔，共 4 份，放進 App 程式碼</td></tr>
+    <tr><td>③ Firebase SDK 整合</td><td>RD</td><td>安裝 SDK，設定 build 環境切換</td></tr>
+    <tr><td>④ GTM 容器連結</td><td>RD</td><td>把你的 GTM 容器 ID 填入 Firebase 設定</td></tr>
+    <tr><td>⑤ 事件呼叫 logEvent()</td><td>RD</td><td>依照你的事件規格，在程式碼中加入追蹤呼叫</td></tr>
+    <tr><td>⑥ 驗證</td><td>你 + RD</td><td>用 DebugView 確認事件正確送出</td></tr>
+  </tbody></table></div>
+
+  <h2>Step 1：RD 建立兩個 Firebase 專案</h2>
+  <div class="struct" style="border-color:var(--blue)">
+    <div class="struct-title" style="color:var(--blue)">Firebase Console — 建立兩個專案，建立時選「是」開啟 Google Analytics</div>
+    <div class="struct-inner struct-inner-2">
+      <div class="struct-box sb-teal">
+        <div class="sb-title">Firebase PROD 專案</div>
+        <ul><li>連結 GA4 PROD Property</li><li>iOS App → GoogleService-Info.plist（PROD）</li><li>Android App → google-services.json（PROD）</li></ul>
+      </div>
+      <div class="struct-box sb-amber">
+        <div class="sb-title">Firebase DEV 專案</div>
+        <ul><li>連結 GA4 DEV Property</li><li>iOS App → GoogleService-Info.plist（DEV）</li><li>Android App → google-services.json（DEV）</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <h2>Step 2：設定檔與 build 環境切換</h2>
+  <div class="tbl-wrap"><table><thead class="blue"><tr><th>設定檔</th><th>平台</th><th>用於</th></tr></thead>
+  <tbody>
+    <tr><td>GoogleService-Info.plist（PROD）</td><td>iOS</td><td>iOS 正式 build</td></tr>
+    <tr><td>google-services.json（PROD）</td><td>Android</td><td>Android 正式 build</td></tr>
+    <tr><td>GoogleService-Info.plist（DEV）</td><td>iOS</td><td>iOS 測試 build</td></tr>
+    <tr><td>google-services.json（DEV）</td><td>Android</td><td>Android 測試 build</td></tr>
+  </tbody></table></div>
+  <div class="code-block"><code># 正式環境
+flutter run --dart-define=ENV=prod
+
+# 測試環境
+flutter run --dart-define=ENV=dev</code></div>
+
+  <h2>Step 3：GTM 容器連結 Firebase</h2>
+  <p>RD 在 Firebase Console 裡，把你第三章建好的 GTM 容器 ID 填入對應的專案，iOS 和 Android 各自有對應的容器：</p>
+  <div class="tbl-wrap"><table><thead class="teal"><tr><th>Firebase 專案</th><th>平台</th><th>填入的 GTM 容器 ID</th></tr></thead>
+  <tbody>
+    <tr><td>Firebase PROD 專案</td><td>iOS</td><td>GTM-XXXXXXX（iOS 正式容器）</td></tr>
+    <tr><td>Firebase PROD 專案</td><td>Android</td><td>GTM-XXXXXXX（Android 正式容器）</td></tr>
+    <tr><td>Firebase DEV 專案</td><td>iOS</td><td>GTM-XXXXXXX（iOS 測試容器）</td></tr>
+    <tr><td>Firebase DEV 專案</td><td>Android</td><td>GTM-XXXXXXX（Android 測試容器）</td></tr>
+  </tbody></table></div>
+
+  <h2>Step 4：事件規格定義</h2>
+  <div class="code-block"><code>// Flutter 範例：使用者完成一筆現貨交易
+FirebaseAnalytics.instance.logEvent(
+  name: 'trade_complete',
+  parameters: {
+    'symbol': 'BTC-CAD',    // 來自 App State
+    'side': 'buy',           // 買入 or 賣出
+    'amount': 0.5,           // 來自使用者輸入
+    'price': 50000,          // 來自 API 回傳
+    'currency': 'CAD',
+  },
+);</code></div>
+
+  <div class="tbl-wrap"><table><thead class="coral"><tr><th>事件名稱</th><th>觸發時機</th><th>必要參數</th><th>平台</th></tr></thead>
+  <tbody>
+    <tr><td>login</td><td>登入成功後</td><td>method（google / email）</td><td>Web + App</td></tr>
+    <tr><td>trade_click</td><td>點擊買入 / 賣出按鈕</td><td>symbol, side, amount</td><td>Web + App</td></tr>
+    <tr><td>trade_complete</td><td>訂單成交後</td><td>symbol, amount, price, currency</td><td>Web + App</td></tr>
+    <tr><td>kyc_start</td><td>進入 KYC 流程第一步</td><td>step（1 / 2 / 3）</td><td>Web + App</td></tr>
+  </tbody></table></div>
+
+  <div class="qa">
+    <div class="qa-q"><span class="q-label">Q</span>為什麼事件還需要提供必要參數？GTM 碼貼好後不能在後台設定嗎？</div>
+    <div class="qa-a">
+      <p>在 Web 上，GTM 確實可以自己讀取很多東西。但 App 上每一個自訂事件，RD 都需要在對應的地方加 logEvent() 呼叫，GTM 才能接收到。</p>
+      <p>關鍵原因是：成交金額、幣別、訂單 ID 這些資料存在 App State 和 API 回傳裡，不在畫面上，GTM 讀不到，必須由 RD 主動推送。</p>
+      <div class="box box-tip"><div class="box-label">✓ 重點</div>你定義「要追蹤什麼、參數叫什麼名字」，RD 負責「把呼叫放到正確的地方」。RD 埋好一次後，你在 GTM 後台操作，不需要再找他。</div>
+    </div>
+  </div>
+
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第六章 待辦清單</h3>
+      <div class="checklist-progress" id="prog-5">0 / 7</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-5" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">整理 GA4 PROD / DEV Property 名稱、4 個 App 容器 ID 給 RD</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">向 RD 確認 iOS Bundle ID（正式 / 測試）和 Android Package Name（正式 / 測試）</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">RD 建立 Firebase PROD / DEV 兩個專案，各連結對應 GA4 Property</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">RD 完成 Firebase SDK 整合與 build 環境切換（dart-define）</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">RD 在 Firebase PROD / DEV 各填入對應的 iOS / Android GTM 容器 ID（共 4 組）</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">整理事件規格清單（事件名稱、觸發時機、必要參數）給 RD</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'5')"><div class="ci-box"></div><div class="ci-text">RD 在對應程式碼位置加入 logEvent() 呼叫</div><span class="checklist-tag tag-rd">需 RD</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第七章 ══ -->
+<div class="chapter" id="ch-6">
+  <div class="chapter-banner">
+    <div class="ch-num">第七章</div>
+    <h1>驗證與 Debug</h1>
+    <div class="ch-sub">GTM Preview 模式、GA4 DebugView、App Debug 裝置設定</div>
+  </div>
+
+  <div class="struct" style="border-color:var(--blue)">
+    <div class="struct-title" style="color:var(--blue)">驗證工具總覽</div>
+    <div class="struct-inner struct-inner-2">
+      <div class="struct-box sb-teal">
+        <div class="sb-title">Web 驗證</div>
+        <ul><li>① GTM Preview 模式：確認觸發器 / 代碼是否啟動</li><li>② GA4 DebugView：確認事件是否送達、參數是否正確</li></ul>
+      </div>
+      <div class="struct-box sb-purple">
+        <div class="sb-title">App 驗證</div>
+        <ul><li>① 開啟裝置 Debug 模式（Android adb / iOS Xcode）</li><li>② GA4 DebugView：即時看事件流與參數值</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <h2>Web 驗證：GTM Preview 模式</h2>
+  <div class="step"><div class="step-num">STEP<span>1</span></div><div class="step-body"><div class="step-title">開啟 Preview 模式</div><div class="step-desc">進入 GTM → 選「Web - 測試」容器 → 右上角點「預覽」→ 輸入你的測試網址 → 點「連線」。瀏覽器會開啟兩個視窗：你的測試網站，以及 GTM Tag Assistant 面板。</div></div></div>
+
+  <h3>Tag Assistant 確認清單</h3>
+  <div class="tbl-wrap"><table><thead class="teal"><tr><th>確認項目</th><th>正確的狀態</th><th>如果不對</th></tr></thead>
+  <tbody>
+    <tr><td>左側事件列表</td><td>每次換頁都出現一筆 History Change</td><td>換了 3 頁只有 1 筆 → 換頁追蹤有問題</td></tr>
+    <tr><td>Tags Fired（右側）</td><td>看到「GA4 - 頁面瀏覽」出現</td><td>出現在 Tags Not Fired → 觸發器沒有正確綁定</td></tr>
+    <tr><td>Variables（右側）</td><td>GA4 Measurement ID = G-DEV-XXXX</td><td>顯示 G-PROD-XXXX → 環境變數設定錯誤</td></tr>
+  </tbody></table></div>
+  <div class="box box-note"><div class="box-label">⚠ 常見問題</div>第一個頁面出現兩筆 page_view。原因是 DOM Ready 和 History Change 在初次載入都觸發了。解法是把 DOM Ready 觸發器的條件限制為「僅初次載入」。</div>
+
+  <h2>Web 驗證：GA4 DebugView</h2>
+  <div class="step"><div class="step-num">STEP<span>2</span></div><div class="step-body"><div class="step-title">進入 GA4 → 管理 → DebugView</div><div class="step-desc">GTM Preview 開啟時，你的瀏覽器就自動變成 Debug 裝置，DebugView 會即時顯示你的每一個動作。</div></div></div>
+  <div class="tbl-wrap"><table><thead class="blue"><tr><th>確認項目</th><th>正確狀態</th></tr></thead>
+  <tbody>
+    <tr><td>有沒有收到 page_view</td><td>每次換頁都應該出現一筆</td></tr>
+    <tr><td>事件名稱是否正確</td><td>和你在 GTM 設定的一致</td></tr>
+    <tr><td>參數值是否正確</td><td>點開事件，看每個參數的實際值</td></tr>
+    <tr><td>有沒有重複發送</td><td>同一個換頁動作不應該出現兩筆 page_view</td></tr>
+  </tbody></table></div>
+
+  <h2>App 驗證：開啟裝置 Debug 模式</h2>
+  <h3>Android（請 RD 操作）</h3>
+  <div class="code-block"><code># 開啟 Debug 模式
+adb shell setprop debug.firebase.analytics.app com.yourapp
+
+# 驗證完關閉
+adb shell setprop debug.firebase.analytics.app .none.</code></div>
+
+  <h3>iOS（請 RD 操作）</h3>
+  <p>Xcode → Edit Scheme → Arguments → 在「Arguments Passed On Launch」加入：</p>
+  <div class="code-block"><code>-FIRDebugEnabled</code></div>
+  <p>關閉：移除 -FIRDebugEnabled，重新 build。</p>
+
+  <h2>最終驗證 Checklist</h2>
+  <div class="checklist-section">
+    <div class="checklist-header">
+      <h3>📋 第七章 最終驗證清單</h3>
+      <div class="checklist-progress" id="prog-6">0 / 8</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar-6" style="width:0%"></div></div>
+    <div class="checklist-body">
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">PROD Property：3 個 Stream 建立完成，ID 已記錄</div><span class="checklist-tag tag-ga4">GA4</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">DEV Property：3 個 Stream 建立完成，ID 已記錄</div><span class="checklist-tag tag-ga4">GA4</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">Web 正式 / 測試容器：代碼 + 觸發器設定完成並發布</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">iOS 正式 / 測試容器：建立完成，ID 已給 RD</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">Android 正式 / 測試容器：建立完成，ID 已給 RD</div><span class="checklist-tag tag-gtm">GTM</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">RD 完成 Firebase SDK 整合、GTM 容器連結、環境切換設定</div><span class="checklist-tag tag-rd">需 RD</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">GTM Preview（Web）：換頁時 History Change 觸發，GA4 代碼在 Tags Fired，Measurement ID 正確</div><span class="checklist-tag tag-verify">驗證</span></div>
+      <div class="checklist-item" onclick="toggle(this,'6')"><div class="ci-box"></div><div class="ci-text">GA4 DebugView：Web page_view 每次換頁各一筆無重複；App 自訂事件正確送出，參數值正確</div><span class="checklist-tag tag-verify">驗證</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ── Chapter navigation ─────────────────────────────
+function goTo(idx) {
+  document.querySelectorAll('.chapter').forEach((c,i) => c.classList.toggle('active', i===idx));
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===idx));
+  window.scrollTo(0,0);
+}
+
+// ── localStorage helpers ───────────────────────────
+const STORE_KEY = 'ga4gtm_checklist';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function saveState(state) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e) {}
+}
+
+// ── Build stable item ID from text content ─────────
+function itemKey(el) {
+  return el.querySelector('.ci-text').textContent.trim().slice(0, 60);
+}
+
+// ── Toggle ─────────────────────────────────────────
+function toggle(el, chIdx) {
+  el.classList.toggle('checked');
+  const state = loadState();
+  const key = itemKey(el);
+  if (el.classList.contains('checked')) {
+    state[key] = true;
+  } else {
+    delete state[key];
+  }
+  saveState(state);
+  updateProgress(chIdx);
+  updateNavDone(chIdx);
+  updateOverall();
+}
+
+// ── Restore state on load ──────────────────────────
+function restoreState() {
+  const state = loadState();
+  document.querySelectorAll('.checklist-item').forEach(el => {
+    const key = itemKey(el);
+    if (state[key]) el.classList.add('checked');
+  });
+}
+
+function updateProgress(chIdx) {
+  const items = document.querySelectorAll(`#ch-${chIdx} .checklist-item`);
+  const checked = document.querySelectorAll(`#ch-${chIdx} .checklist-item.checked`).length;
+  const tot = items.length;
+  const pct = tot ? (checked/tot*100) : 0;
+  document.getElementById(`bar-${chIdx}`).style.width = pct+'%';
+  document.getElementById(`prog-${chIdx}`).textContent = `${checked} / ${tot}`;
+}
+
+function updateNavDone(chIdx) {
+  const items = document.querySelectorAll(`#ch-${chIdx} .checklist-item`);
+  const checked = document.querySelectorAll(`#ch-${chIdx} .checklist-item.checked`).length;
+  const nav = document.getElementById(`nav-${chIdx}`);
+  nav.classList.toggle('done', checked === items.length && items.length > 0);
+}
+
+function updateOverall() {
+  const allItems = document.querySelectorAll('.checklist-item');
+  const allChecked = document.querySelectorAll('.checklist-item.checked').length;
+  const pct = allItems.length ? (allChecked/allItems.length*100) : 0;
+  document.getElementById('op-fill').style.width = pct+'%';
+  document.getElementById('op-count').textContent = `${allChecked} / ${allItems.length} 項完成`;
+}
+
+// ── Init ───────────────────────────────────────────
+restoreState();
+for (let i = 0; i < 7; i++) {
+  updateProgress(i);
+  updateNavDone(i);
+}
+updateOverall();
+</script>
+</body>
+</html>
